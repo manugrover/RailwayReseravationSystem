@@ -7,7 +7,7 @@ CREATE TABLE Passengers (
     Email VARCHAR(100) UNIQUE,
     Phone VARCHAR(20) NOT NULL,
     Disability BOOLEAN DEFAULT FALSE,
-    StreetAddress VARCHAR(255),
+    Address VARCHAR(255),
     City VARCHAR(50),
     State VARCHAR(50),
     Country VARCHAR(50) DEFAULT 'India'
@@ -135,7 +135,6 @@ CREATE TABLE Notifications (
     FOREIGN KEY (PassengerID) REFERENCES Passengers(PassengerID),
     Foreign Key(TicketID) REFERENCES Tickets(TicketID)
 );
-
 
 
 
