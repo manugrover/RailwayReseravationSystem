@@ -1,0 +1,15 @@
+TrainID,TrainNumber,TrainName,TrainType,OriginStationID,DestinationStationID,TotalDistance,IsActive,CreatedAt
+1,12001,Shatabdi Express,Shatabdi,2,5,2150,1,2025-04-13 11:39:50
+3,12951,Rajdhani Express,Rajdhani,2,1,1384,1,2025-04-13 11:39:50
+5,12635,Chennai Express,Express,4,1,1336,1,2025-04-13 11:39:50
+7,12509,Guwahati Express,Express,14,2,1872,1,2025-04-13 11:39:50
+9,12723,Telangana Express,Express,6,16,781,1,2025-04-13 11:39:50
+11,12863,Howrah Mail,Superfast,3,2,1448,1,2025-04-13 11:39:50
+13,12933,Golden Temple Mail,Superfast,1,17,1965,1,2025-04-13 11:39:50
+15,12645,Grand Trunk Express,Express,4,20,800,1,2025-04-13 11:39:50
+17,12779,Godavari Express,Express,16,19,1200,1,2025-04-13 11:39:50
+19,12229,Duronto Express,Duronto,2,7,935,1,2025-04-13 11:39:50
+41,22643,Mumbai-Chennai Express,Express,1,4,1336,1,2025-04-13 17:41:47
+42,22644,Chennai-Mumbai Express,Express,4,1,1336,1,2025-04-13 17:41:47
+43,12875,Bengaluru-Howrah SF,Superfast,5,3,1860,1,2025-04-13 17:41:47
+44,12876,Howrah-Bengaluru SF,Superfast,3,5,1860,1,2025-04-13 17:41:47

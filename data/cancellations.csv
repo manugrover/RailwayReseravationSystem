@@ -1,0 +1,4 @@
+id,booking_id,request_date,refund_amount,status,reason
+1,5,2025-03-27 12:10:41,6772.5,Processed,Change of plans
+2,3,2025-04-10 12:10:41,6228.0,Pending,Duplicate booking
+5,42,2025-04-05 12:10:41,6012.0,Processed,Emergency cancellation
