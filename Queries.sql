@@ -87,14 +87,6 @@ WHERE p.PaymentStatus = 'Completed'
   
   -- 8. Cancellation Records with Refund Status
 
-SELECT c.CancellationDateTime, c.RefundAmount, c.RefundStatus,
-       t.PNRNo, tr.TrainNumber, p.FirstName, p.LastName
-FROM Cancellations c
-JOIN Tickets t ON c.TicketID = t.TicketID
-JOIN Trains tr ON t.TrainID = tr.TrainID
-JOIN Passengers p ON t.PassengerID = p.PassengerID
-WHERE Date(c.CancellationDateTime) BETWEEN '2025-04-01' AND '2025-04-31';
-
 select * from Cancellations c where Date(c.CancellationDateTime) BETWEEN '2025-04-01' AND '2025-04-30';
 
 -- 9. Busiest Route by Passenger Count

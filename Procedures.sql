@@ -122,7 +122,7 @@ BEGIN
     FROM Seats 
     WHERE TrainID = p_train_id
       AND Class = p_class
-      AND IsBooked = TRUE
+      AND IsBooked = FALSE
       AND (IsRAC = FALSE OR p_class = 'Sleeper')
     LIMIT 1 FOR UPDATE;
 
@@ -154,7 +154,7 @@ BEGIN
     SET v_ticket_id = LAST_INSERT_ID();
 
     -- Update seat
-    UPDATE Seats SET IsBooked = FALSE WHERE SeatID = v_seat_id;
+    UPDATE Seats SET IsBooked = TRUE WHERE SeatID = v_seat_id;
 
     -- Process payment with the correct TicketID
     INSERT INTO Payments 
@@ -181,10 +181,20 @@ BEGIN
     JOIN Tickets t ON s.TrainID = t.TrainID 
       AND s.SeatNo = t.SeatNo 
       AND s.CoachNo = t.CoachNo
-    SET s.IsAvailable = TRUE
+    SET s.IsBooked = FALSE
     WHERE t.TicketID = NEW.TicketID;
+    
 END$$
 DELIMITER ;
+
+Delimiter $$
+create procedure cancelTicket(in p_TicketID int)
+begin
+	update Tickets set Status = 'Cancelled' where TicketID = p_TicketId;
+end $$
+Delimiter ;
+
+call cancelTicket(51);
 
 -- 5. Schedule Management
 
@@ -215,8 +225,7 @@ BEGIN
 END$$
 DELIMITER ;
 
-drop Procedure UpdateSchedule;
-call UpdateSchedule(1, 2, NULL, '06:05:00');
+call UpdateSchedule(1, 2, NULL, '06:10:00');
 
 -- 6. Daily Payment Reconciliation
 
@@ -236,6 +245,8 @@ BEGIN
       AND t.Status = 'Confirmed';
 END$$
 DELIMITER ;
+
+call ReconcilePayments();
 
 -- 7. Automatic Waitlist Promotion
 DELIMITER $$
@@ -278,7 +289,9 @@ BEGIN
         SET MESSAGE_TEXT = 'Departure time cannot be before arrival time';  
     END IF;  
 END$$  
-DELIMITER 
+DELIMITER ;
+
+update Schedules set DepartureTime = '10:05:00' where ScheduleID = 2;
 
  -- 9. Occupancy Report
  
@@ -313,6 +326,8 @@ BEGIN
     END IF;  
 END$$  
 DELIMITER ;
+
+update Tickets set Status = 'Confirmed' where TicketID = 3;
 
 
 
