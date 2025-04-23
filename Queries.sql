@@ -11,6 +11,8 @@ select * from Notifications;
 select * from Classes;
 select * from Payments;
 
+INSERT INTO Seats (TrainID, CoachNo, SeatNo, Class, IsRAC, isBooked, JourneyDate) values (41, 'B1', 11, '2AC', False, False, '2025-04-25');
+
 -- 1. PNR Status Tracking for a Given Ticket
 SELECT t.PNRNo, t.Status, t.JourneyDate, 
        tr.TrainNumber, tr.TrainName,

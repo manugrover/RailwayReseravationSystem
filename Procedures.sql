@@ -1,5 +1,73 @@
+-- 1. Trains from a particular station
 
--- 1. Function for Fare Calulation
+DELIMITER //
+CREATE PROCEDURE GetTrainsBetweenStations(
+    IN source_station_name VARCHAR(100),
+    IN dest_station_name VARCHAR(100),
+    IN journey_date DATE
+)
+BEGIN
+    DECLARE source_id INT;
+    DECLARE dest_id INT;
+
+    -- Get Station IDs
+    SELECT StationID INTO source_id FROM Stations WHERE StationName = source_station_name;
+    SELECT StationID INTO dest_id FROM Stations WHERE StationName = dest_station_name;
+
+    -- Check if stations exist
+    IF source_id IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Source station not found';
+    END IF;
+    IF dest_id IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Destination station not found';
+    END IF;
+
+    -- Main query to find available trains
+    SELECT 
+        t.TrainID,
+        t.TrainNumber,
+        t.TrainName,
+        t.TrainType,
+        origin_sch.DepartureTime AS OriginDepartureTime,
+        s1.DepartureTime AS SourceDepartureTime,
+        s2.ArrivalTime AS DestinationArrivalTime,
+        (s2.DistanceFromOrigin - s1.DistanceFromOrigin) AS Distance
+    FROM Trains t
+    INNER JOIN Schedules s1 
+        ON t.TrainID = s1.TrainID 
+        AND s1.StationID = source_id
+    INNER JOIN Schedules s2 
+        ON t.TrainID = s2.TrainID 
+        AND s2.StationID = dest_id 
+        AND s2.StationSerialNo > s1.StationSerialNo
+    INNER JOIN Schedules origin_sch 
+        ON t.TrainID = origin_sch.TrainID 
+        AND origin_sch.StationSerialNo = 1
+    INNER JOIN Stations src_st 
+        ON s1.StationID = src_st.StationID
+    INNER JOIN Stations dest_st 
+        ON s2.StationID = dest_st.StationID
+    WHERE 
+        -- Check if the train runs on the calculated origin departure day
+        CASE 
+            WHEN DAYOFWEEK(journey_date - INTERVAL (s1.DayNumber - 1) DAY) = 2 THEN origin_sch.IsOnMonday
+            WHEN DAYOFWEEK(journey_date - INTERVAL (s1.DayNumber - 1) DAY) = 3 THEN origin_sch.IsOnTuesday
+            WHEN DAYOFWEEK(journey_date - INTERVAL (s1.DayNumber - 1) DAY) = 4 THEN origin_sch.IsOnWednesday
+            WHEN DAYOFWEEK(journey_date - INTERVAL (s1.DayNumber - 1) DAY) = 5 THEN origin_sch.IsOnThursday
+            WHEN DAYOFWEEK(journey_date - INTERVAL (s1.DayNumber - 1) DAY) = 6 THEN origin_sch.IsOnFriday
+            WHEN DAYOFWEEK(journey_date - INTERVAL (s1.DayNumber - 1) DAY) = 7 THEN origin_sch.IsOnSaturday
+            WHEN DAYOFWEEK(journey_date - INTERVAL (s1.DayNumber - 1) DAY) = 1 THEN origin_sch.IsOnSunday
+        END = TRUE
+        AND t.IsActive = TRUE
+    ORDER BY s1.DepartureTime;
+END //
+DELIMITER ;
+
+drop procedure GetTrainsBetweenStations;
+CALL GetTrainsBetweenStations('Nagpur Junction', 'Pune Junction', '2025-05-25');
+
+
+-- 2. Function for Fare Calulation
 DELIMITER $$
 CREATE FUNCTION CalculateTicketFare(
     train_id INT, 
@@ -35,7 +103,7 @@ DELIMITER ;
 
 select CalculateTicketFare(3, '2AC', 1); 
 
- -- 2. Generate PNR Number
+ -- 3. Generate PNR Number
  
 DELIMITER $$
 CREATE FUNCTION GeneratePNR(
@@ -62,7 +130,7 @@ DELIMITER ;
 
 select GeneratePNR(7, 11, '2025-04-18');
 
--- 3. Booking Procedure
+-- 4. Booking Procedure
 
 DELIMITER $$
 CREATE PROCEDURE BookTicket(
@@ -123,7 +191,6 @@ BEGIN
     WHERE TrainID = p_train_id
       AND Class = p_class
       AND IsBooked = FALSE
-      AND (IsRAC = FALSE OR p_class = 'Sleeper')
     LIMIT 1 FOR UPDATE;
 
     IF v_seat_id IS NULL THEN
@@ -168,9 +235,10 @@ END$$
 DELIMITER ;
 
 drop procedure BookTicket;
-call BookTicket(1, 41, '1AC', '2025-04-14', 'Credit Card');
+INSERT INTO Seats (TrainID, CoachNo, SeatNo, Class, IsRAC, isBooked, JourneyDate) values (41, 'B1', 10, '2AC', False, False, '2025-04-25');
+call BookTicket(1, 41, '2AC', '2025-04-25', 'Credit Card');
 
--- 4. Automatic Seat Release on Cancellation
+-- 5. Automatic Seat Release on Cancellation
 
 DELIMITER $$
 CREATE TRIGGER AfterCancellation
@@ -187,16 +255,22 @@ BEGIN
 END$$
 DELIMITER ;
 
+-- 6. Procedure for cancellating a train
+
 Delimiter $$
-create procedure cancelTicket(in p_TicketID int)
+create procedure cancelTicket(in p_TicketID int, in reason varchar(255))
 begin
+	declare refund_amount DECIMAL(10,2);
+	select Fare*0.1 into refund_amount from Tickets where TicketID = p_TicketID;
+	insert into cancellations (TicketID, CancellationDateTime, RefundAmount, RefundStatus, CancellationReason) values (p_TicketID, now(), refund_amount, 'Processed', reason);
 	update Tickets set Status = 'Cancelled' where TicketID = p_TicketId;
 end $$
 Delimiter ;
 
-call cancelTicket(51);
+drop procedure cancelTicket;
+call cancelTicket(77, 'Plan change');
 
--- 5. Schedule Management
+-- 7. Schedule Management
 
 DELIMITER $$
 CREATE PROCEDURE UpdateSchedule(
@@ -227,7 +301,7 @@ DELIMITER ;
 
 call UpdateSchedule(1, 2, NULL, '06:10:00');
 
--- 6. Daily Payment Reconciliation
+-- 8. Daily Payment Reconciliation
 
 DELIMITER $$
 CREATE PROCEDURE ReconcilePayments()
@@ -248,7 +322,7 @@ DELIMITER ;
 
 call ReconcilePayments();
 
--- 7. Automatic Waitlist Promotion
+-- 9. Automatic Waitlist Promotion
 DELIMITER $$
 CREATE EVENT PromoteWaitlist
 ON SCHEDULE EVERY 15 MINUTE
@@ -278,7 +352,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- 8. Validate Schedule Updates
+-- 10. Validate Schedule Updates
 DELIMITER $$  
 CREATE TRIGGER BeforeScheduleUpdate  
 BEFORE UPDATE ON Schedules  
@@ -293,7 +367,7 @@ DELIMITER ;
 
 update Schedules set DepartureTime = '10:05:00' where ScheduleID = 2;
 
- -- 9. Occupancy Report
+ -- 11. Occupancy Report
  
 DELIMITER $$  
 CREATE PROCEDURE GenerateOccupancyReport(IN train_id INT, IN journey_date DATE)  
@@ -313,7 +387,7 @@ DELIMITER ;
 
 call GenerateOccupancyReport(41, '2025-04-16');
 
--- 10. Notify on Ticket Confirmation
+-- 12. Notify on Ticket Confirmation
 
 DELIMITER $$  
 CREATE TRIGGER AfterTicketStatusUpdate  
@@ -328,6 +402,7 @@ END$$
 DELIMITER ;
 
 update Tickets set Status = 'Confirmed' where TicketID = 3;
+
 
 
 
